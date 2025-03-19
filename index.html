@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>URGENT TASKs Fetcher</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            max-width: 150px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .whatsapp-btn {
+            background-color: #25D366;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .whatsapp-btn:disabled {
+            background-color: gray;
+            cursor: not-allowed;
+        }
+        #loading {
+            font-size: 16px;
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+        #refreshMessage {
+            font-size: 14px;
+            color: green;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Pending Works</h2>
+<p id="refreshMessage">Data refreshed successfully.</p>
+<p id="loading">Fetching data, please wait...</p>
+
+<table id="dataTable">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Work</th>
+            <th>Remark</th>
+            <th>Assign</th>
+            <th>Status</th>
+            <th>WhatsApp Client</th>
+            <th>WhatsApp Assignee</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwghUGuJbJxjITTxeigY4vPFL_xCsMXX2ESoQbEurN7s7ZYBLQyM1LjZi0Tgk__3Q2T/exec';
+
+// Fixed Assignee Phone Numbers
+const assigneePhones = {
+    "ABHIGNA": "9182338327",
+    "RAJU": "9248410298",
+    "SUNNY": "9381536952"
+};
+
+async function fetchData() {
+    try {
+        document.getElementById("loading").style.display = "block";
+        document.getElementById("refreshMessage").style.display = "none";
+
+        const response = await fetch(SHEET_API_URL);
+        if (!response.ok) throw new Error(`HTTP Error! Status: ${response.status}`);
+
+        const data = await response.json();
+        if (!Array.isArray(data) || data.length === 0) {
+            alert('No data found.');
+            document.getElementById("loading").style.display = "none";
+            return;
+        }
+
+        const tableBody = document.querySelector("#dataTable tbody");
+        tableBody.innerHTML = "";
+
+        data.forEach(person => {
+            const id = person.id || '';
+            const name = person.name || '';
+            let phone = person.phone || '';
+            const work = person.work || person.gstin || '';
+            const remark = person.remark || '';
+            const assign = person.assign || person.busname || '';
+            const status = person.status || '';
+
+            // Clean client phone number
+            phone = phone.replace(/\D/g, '');
+
+            // Get the fixed assignee phone number
+            let assignPhone = assigneePhones[assign] || ''; // Get phone from mapping
+           
+            // Generate WhatsApp link for the client
+            let whatsappClientLink = '#';
+            let clientDisabledAttr = 'disabled';
+            if (phone.length >= 10) {
+                const message = encodeURIComponent(`Hi ${name}, Regarding your pending work: ${work}`);
+                whatsappClientLink = `https://wa.me/${phone}?text=${message}`;
+                clientDisabledAttr = '';
+            }
+
+            // Generate WhatsApp link for the assignee
+            let whatsappAssigneeLink = '#';
+            let assigneeDisabledAttr = 'disabled';
+            if (assignPhone.length >= 10) {
+                const message = encodeURIComponent(`Hi ${assign}, Please follow up on the pending work: ${work} for ${name}`);
+                whatsappAssigneeLink = `https://wa.me/${assignPhone}?text=${message}`;
+                assigneeDisabledAttr = '';
+            }
+
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${id}</td>
+                <td>${name}</td>
+                <td>${phone}</td>
+                <td>${work}</td>
+                <td>${remark}</td>
+                <td>${assign}</td>
+                <td>${status}</td>
+                <td>
+                    <a href="${whatsappClientLink}" target="_blank">
+                        <button class="whatsapp-btn" ${clientDisabledAttr}>WhatsApp Client</button>
+                    </a>
+                </td>
+                <td>
+                    <a href="${whatsappAssigneeLink}" target="_blank">
+                        <button class="whatsapp-btn" ${assigneeDisabledAttr}>WhatsApp Assignee</button>
+                    </a>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+        document.getElementById("refreshMessage").style.display = "block";
+        setTimeout(() => {
+            document.getElementById("refreshMessage").style.display = "none";
+        }, 3000);
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        alert('Failed to fetch data. Check console for details.');
+    } finally {
+        document.getElementById("loading").style.display = "none";
+    }
+}
+
+// Fetch data initially and refresh every 60 seconds
+fetchData();
+setInterval(fetchData, 60000);
+</script>
+
+</body>
+</html>
