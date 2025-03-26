@@ -105,12 +105,14 @@ async function fetchData() {
         tableBody.innerHTML = "";
 
         data.forEach(person => {
-           
-            const name = person.name || '';
-           
-            const work = person.work || person.gstin || '';
+           const id = person.id || '';
             
+             const name = person.name || '';
+             let phone = person.phone || '';
             
+             const work = person.work || person.gstin || '';
+             const remark = person.remark || '';
+             const assign = person.assign || person.busname || '';
             const status = person.status || '';
 
             // Clean client phone number
